@@ -2,6 +2,7 @@
 name = "wiredtiger"
 version = "0.1.0"
 edition = "2021"
+authors = ["Tyler Brock", "Mike O'Brien"]
 
 [build-dependencies]
 bindgen = "0.69.4"
