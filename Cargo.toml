@@ -1,6 +1,6 @@
 [package]
 name = "wiredtiger"
-version = "11.2.0-1"
+version = "11.2.0-2"
 edition = "2021"
 authors = ["Tyler Brock", "Mike O'Brien"]
 repository = "https://github.com/TylerBrock/wiredtiger-rust"
