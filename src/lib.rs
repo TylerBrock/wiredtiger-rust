@@ -1,4 +1,4 @@
-use libc::{self, c_char, c_void, size_t};
+use libc::{self, c_char};
 use libwiredtiger as wtffi;
 use std::ffi::{CStr, CString};
 use std::os::raw;
@@ -33,10 +33,11 @@ fn get_error(result: i32) -> Error {
 
 // TODO make this a macro?
 fn make_result<T>(result: i32, value: T) -> Result<T, Error> {
-    if result != 0 {
-        return Err(get_error(result));
+    if result == 0 {
+        Ok(value)
+    } else {
+        Err(get_error(result))
     }
-    return Ok(value);
 }
 
 pub struct Connection {
@@ -54,12 +55,6 @@ pub struct Cursor {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Error {
     message: String,
-}
-
-impl Error {
-    fn new(message: String) -> Self {
-        Self { message }
-    }
 }
 
 impl Connection {
@@ -95,7 +90,7 @@ impl Connection {
                 ptr::null(),
                 &mut session
             );
-            return make_result(result, Session { session });
+            make_result(result, Session { session })
         }
     }
 }
@@ -181,7 +176,7 @@ impl Cursor {
                 return Err(get_error(result));
             }
             let owned_val = CStr::from_ptr(val).to_string_lossy().into_owned();
-            return make_result(result, Some(owned_val));
+            make_result(result, Some(owned_val))
         }
     }
 }
