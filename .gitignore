@@ -1,2 +1,5 @@
 /target
 /third_party
+
+# MacOS Files
+.DS_Store
