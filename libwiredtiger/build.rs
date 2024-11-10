@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn build_wt() -> std::io::Result<()> {
+    eprintln!("building wiredtigER!!!!!");
     let wt_dir = "wiredtiger";
     let build_dir = format!("{wt_dir}/build");
     Command::new("cmake")
@@ -38,15 +39,18 @@ fn bindgen_wt() {
 }
 
 fn main() {
+    eprintln!("SSSSSSSSSSSS");
     if !Path::new("wiredtiger/LICENSE").exists() {
         update_submodules();
     }
+    eprintln!("building wiredtiaaaaaaaagER!!!!!");
     build_wt().expect("Failed to build wiredtiger");
 
     bindgen_wt();
 
-    // Tell cargo to look for shared libraries in the specified directory
-    println!("cargo:rustc-link-search=wiredtiger/build");
+    // Tell cargo to look for shared libraries in the specified directory.
+    // Note that this search path is relative to the crate root, not the workspace root.
+    println!("cargo:rustc-link-search=libwiredtiger/wiredtiger/build");
 
     // Tell cargo to tell rustc to statically link with the wiredtiger library.
     // This requires that WT was configured with the -DENABLE_STATIC=1 option to cmake.
