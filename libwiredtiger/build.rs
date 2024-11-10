@@ -3,7 +3,6 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn build_wt() -> std::io::Result<()> {
-    eprintln!("building wiredtigER!!!!!");
     let wt_dir = "wiredtiger";
     let build_dir = format!("{wt_dir}/build");
     Command::new("cmake")
@@ -39,11 +38,9 @@ fn bindgen_wt() {
 }
 
 fn main() {
-    eprintln!("SSSSSSSSSSSS");
     if !Path::new("wiredtiger/LICENSE").exists() {
         update_submodules();
     }
-    eprintln!("building wiredtiaaaaaaaagER!!!!!");
     build_wt().expect("Failed to build wiredtiger");
 
     bindgen_wt();

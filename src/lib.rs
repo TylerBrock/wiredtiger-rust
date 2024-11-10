@@ -88,12 +88,14 @@ impl Connection {
         let mut session: *mut wtffi::WT_SESSION = ptr::null_mut();
         let event_handler: *mut wtffi::WT_EVENT_HANDLER = ptr::null_mut();
         unsafe {
-            if let Some(open_session) = (*self.conn).open_session {
-                let result = open_session(self.conn, event_handler, ptr::null(), &mut session);
-                return make_result(result, Session { session });
-            } else {
-                Err(Error::new("open_session not found".to_string()))
-            }
+            let result = unwrap_or_panic!(
+                (*self.conn).open_session,
+                self.conn,
+                event_handler,
+                ptr::null(),
+                &mut session
+            );
+            return make_result(result, Session { session });
         }
     }
 }
