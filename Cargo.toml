@@ -3,12 +3,18 @@ name = "wiredtiger"
 version = "11.2.0-1"
 edition = "2021"
 authors = ["Tyler Brock", "Mike O'Brien"]
-description = "Rust bindings for WiredTiger"
 repository = "https://github.com/TylerBrock/wiredtiger-rust"
 keywords = [ "wiredtiger", "mongodb", "database" ]
 
 [workspace]
 members = ["libwiredtiger"]
 
-[build-dependencies]
-bindgen = "0.69.4"
+[dependencies]
+libc = "0.2"
+libwiredtiger = { path = "libwiredtiger" }
+
+[dev-dependencies]
+tempfile = "3"
+assert_ok = "1.0.2"
+
+
