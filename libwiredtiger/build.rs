@@ -23,7 +23,7 @@ fn build_wt() -> std::io::Result<()> {
 fn bindgen_wt() {
     let bindings = bindgen::Builder::default()
         // The input header we would like to generate bindings for.
-        .header(format!("wiredtiger/build/include/wiredtiger.h"))
+        .header("wiredtiger/build/include/wiredtiger.h")
         // Tell cargo to invalidate the built crate whenever any of the
         // included header files changed.
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
