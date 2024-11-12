@@ -131,67 +131,67 @@ impl Connection {
 }
 
 impl Session {
-    pub fn compact(&self, name: &str, config: &str) -> Result<(), Error> {
+    pub fn compact(&self, _name: &str, _config: &str) -> Result<(), Error> {
         // https://source.wiredtiger.com/2.5.2/struct_w_t___s_e_s_s_i_o_n.html#aafa7a12a4891a5bfdc98673a5b8f9c69
         todo!()
     }
 
-    pub fn drop(&self, name: &str, config: &str) -> Result<(), Error> {
+    pub fn drop(&self, _name: &str, _config: &str) -> Result<(), Error> {
         // https://source.wiredtiger.com/2.5.2/struct_w_t___s_e_s_s_i_o_n.html#adf785ef53c16d9dcc77e22cc04c87b70
         todo!()
     }
 
-    pub fn log_printf(&self, fmt: &str) -> Result<(), Error> {
+    pub fn log_printf(&self, _fmt: &str) -> Result<(), Error> {
         // https://source.wiredtiger.com/2.5.2/struct_w_t___s_e_s_s_i_o_n.html#a504625d0b35da78f738d08530a409be9
         todo!()
     }
 
-    pub fn rename(&self, uri: &str, newuri: &str, config: &str) -> Result<(), Error> {
+    pub fn rename(&self, _uri: &str, _newuri: &str, _config: &str) -> Result<(), Error> {
         // https://source.wiredtiger.com/2.5.2/struct_w_t___s_e_s_s_i_o_n.html#a1d24b02549009f78b7c6463da0247614
         todo!()
     }
 
-    pub fn salvage(&self, name: &str, config: &str) -> Result<(), Error> {
+    pub fn salvage(&self, _name: &str, _config: &str) -> Result<(), Error> {
         // https://source.wiredtiger.com/2.5.2/struct_w_t___s_e_s_s_i_o_n.html#ab3399430e474f7005bd5ea20e6ec7a8e
         todo!()
     }
 
-    pub fn truncate(&self, name: &str) -> Result<(), Error> {
+    pub fn truncate(&self, _name: &str) -> Result<(), Error> {
         // https://source.wiredtiger.com/2.5.2/struct_w_t___s_e_s_s_i_o_n.html#ac2bad195e24710d52d730fe3a7c1756a
         todo!()
     }
 
-    pub fn upgrade(&self, name: &str, config: &str) -> Result<(), Error> {
+    pub fn upgrade(&self, _name: &str, _config: &str) -> Result<(), Error> {
         // https://source.wiredtiger.com/2.5.2/struct_w_t___s_e_s_s_i_o_n.html#a556046adc68a33bd317865c6a8d9ad69
         todo!()
     }
 
-    pub fn verify(&self, name: &str, config: &str) -> Result<(), Error> {
+    pub fn verify(&self, _name: &str, _config: &str) -> Result<(), Error> {
         // https://source.wiredtiger.com/2.5.2/struct_w_t___s_e_s_s_i_o_n.html#a0334da4c85fe8af4197c9a7de27467d3
         todo!()
     }
 
-    pub fn begin_transaction(&self, config: &str) -> Result<(), Error> {
+    pub fn begin_transaction(&self, _config: &str) -> Result<(), Error> {
         // https://source.wiredtiger.com/2.5.2/struct_w_t___s_e_s_s_i_o_n.html#a7e26b16b26b5870498752322fad790bf
         todo!()
     }
 
-    pub fn commit_transaction(&self, config: &str) -> Result<(), Error> {
+    pub fn commit_transaction(&self, _config: &str) -> Result<(), Error> {
         // https://source.wiredtiger.com/2.5.2/struct_w_t___s_e_s_s_i_o_n.html#a7e26b16b26b5870498752322fad790bf
         todo!()
     }
 
-    pub fn rollback_transaction(&self, config: &str) -> Result<(), Error> {
+    pub fn rollback_transaction(&self, _config: &str) -> Result<(), Error> {
         //  https://source.wiredtiger.com/2.5.2/struct_w_t___s_e_s_s_i_o_n.html#ab45f521464ad9e54d9b15efc2ffe20a1
         todo!()
     }
 
-    pub fn checkpoint(&self, config: &str) -> Result<(), Error> {
+    pub fn checkpoint(&self, _config: &str) -> Result<(), Error> {
         // https://source.wiredtiger.com/2.5.2/struct_w_t___s_e_s_s_i_o_n.html#a6550c9079198955c5071583941c85bbf
         todo!()
     }
 
-    pub fn transaction_pinned_range(&self, config: &str) -> Result<(), Error> {
+    pub fn transaction_pinned_range(&self, _config: &str) -> Result<(), Error> {
         // https://source.wiredtiger.com/2.5.2/struct_w_t___s_e_s_s_i_o_n.html#a1d108fab498cfddbb09ee23e3321a88d
         todo!()
     }
