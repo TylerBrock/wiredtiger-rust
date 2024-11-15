@@ -37,24 +37,6 @@ pub fn error_message(result: i32) -> String {
     }
 }
 
-// fn get_error(result: i32) -> Result<(), Error> {
-//     if result == 0 {
-//         return Ok(());
-//     }
-//     Err(Error {
-//         message: error_message(result),
-//     })
-// }
-
-// // TODO make this a macro?
-// fn make_result<T>(result: i32, value: T) -> Result<T, Error> {
-//     if result == 0 {
-//         Ok(value)
-//     } else {
-//         Err(get_error(result))
-//     }
-// }
-
 pub struct Connection {
     conn: *mut wtffi::WT_CONNECTION,
 }
