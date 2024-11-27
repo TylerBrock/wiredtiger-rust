@@ -1,3 +1,6 @@
 [submodule "wiredtiger"]
-	path = libwiredtiger/wiredtiger
+	path = crates/wiredtiger/libwiredtiger/wiredtiger
+	url = https://github.com/wiredtiger/wiredtiger
+[submodule "crates/wiredtiger/libwiredtiger/wiredtiger"]
+	path = crates/wiredtiger/libwiredtiger/wiredtiger
 	url = https://github.com/wiredtiger/wiredtiger
