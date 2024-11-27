@@ -375,6 +375,36 @@ struct LSMManagerConfig {
 pub type Result<T> = std::result::Result<T, Error>;
 
 impl RawConnection {
+    // int WT_CONNECTION::add_collator	(	WT_CONNECTION * 	connection, const char * 	name, WT_COLLATOR * 	collator, const char * 	config )
+    // int WT_CONNECTION::add_compressor	(	WT_CONNECTION * 	connection, const char * 	name, WT_COMPRESSOR * 	compressor, const char * 	config )
+    // int WT_CONNECTION::add_data_source	(	WT_CONNECTION * 	connection, const char * 	prefix, WT_DATA_SOURCE * 	data_source, const char * 	config )
+    // int WT_CONNECTION::add_encryptor	(	WT_CONNECTION * 	connection, const char * 	name, WT_ENCRYPTOR * 	encryptor, const char * 	config )	
+    // int WT_CONNECTION::close	(	WT_CONNECTION * 	connection, const char * 	config )
+    // int WT_CONNECTION::compile_configuration	(	WT_CONNECTION * 	connection, const char * 	method, const char * 	str, const char ** 	compiled )	
+    // int WT_CONNECTION::configure_method	(	WT_CONNECTION * 	connection, const char * 	method, const char * 	uri, const char * 	config, const char * 	type, const char * 	check )
+    // WT_EXTENSION_API* WT_CONNECTION::get_extension_api	(	WT_CONNECTION * 	wt_conn	)
+    // const char* WT_CONNECTION::get_home	(	WT_CONNECTION * 	connection	)
+    // int WT_CONNECTION::is_new	(	WT_CONNECTION * 	connection	)
+    // int WT_CONNECTION::load_extension	(	WT_CONNECTION * 	connection, const char * 	path, const char * 	config )
+    // int WT_CONNECTION::open_session	(	WT_CONNECTION * 	connection, WT_EVENT_HANDLER * 	event_handler, const char * 	config, WT_SESSION ** 	sessionp )
+    // int WT_CONNECTION::query_timestamp	(	WT_CONNECTION * 	connection, char * 	hex_timestamp, const char * 	config )
+    // int WT_CONNECTION::reconfigure	(	WT_CONNECTION * 	connection, const char * 	config )
+    // int WT_CONNECTION::rollback_to_stable	(	WT_CONNECTION * 	connection, const char * 	config )
+    // int WT_CONNECTION::set_file_system	(	WT_CONNECTION * 	connection, WT_FILE_SYSTEM * 	fs, const char * 	config )	
+    // int WT_CONNECTION::set_timestamp	(	WT_CONNECTION * 	connection, const char * 	config )	
+
+
+
+
+
+
+
+
+
+
+
+
+
     pub fn close(&self) -> Result<()> {
         let err_code = unsafe { unwrap_or_panic!((*self.conn).close, self.conn, std::ptr::null()) };
         make_result!(err_code, ())
@@ -403,6 +433,10 @@ impl RawConnection {
         } else {
             panic!("received null from calling get_home on WT_CONNECTION");
         }
+    }
+
+    pub fn compile_configuration(&self) {
+        todo!()
     }
 
     pub fn configure_method(
@@ -493,9 +527,54 @@ impl RawConnection {
         };
         make_result!(err_code, RawSession { session })
     }
+
+    pub fn query_timestamp(&self) {
+        todo!();
+    }
+
+    pub fn rollback_to_stable(&self) {
+        todo!();
+    }
+
+    pub fn set_file_system(&self) {
+        todo!();
+    }
+
+    pub fn set_timestamp(&self) {
+        todo!();
+    }
 }
 
 impl RawSession {
+    //int WT_SESSION::alter	(	WT_SESSION * 	session, const char * 	name, const char * 	config )		
+    //int WT_SESSION::begin_transaction	(	WT_SESSION * 	session, const char * 	config )		
+    //int WT_SESSION::bind_configuration	(	WT_SESSION * 	session, const char * 	compiled, ... )	
+    // int WT_SESSION::checkpoint	(	WT_SESSION * 	session, const char * 	config )	
+    // int WT_SESSION::close	(	WT_SESSION * 	session, const char * 	config )	
+    // int WT_SESSION::commit_transaction	(	WT_SESSION * 	session, const char * 	config )	
+    // int WT_SESSION::compact	(	WT_SESSION * 	session, const char * 	name, const char * 	config )	
+    // int WT_SESSION::create	(	WT_SESSION * 	session, const char * 	name, const char * 	config )	
+    // int WT_SESSION::drop	(	WT_SESSION * 	session, const char * 	name, const char * 	config )	
+    // int WT_SESSION::log_flush	(	WT_SESSION * 	session, const char * 	config )	
+    // int WT_SESSION::log_printf	(	WT_SESSION * 	session, const char * 	format, ... )	
+    // int WT_SESSION::open_cursor	(	WT_SESSION * 	session, const char * 	uri, WT_CURSOR * 	to_dup, const char * 	config, WT_CURSOR ** 	cursorp )	
+    // int WT_SESSION::prepare_transaction	(	WT_SESSION * 	session, const char * 	config )	 
+    // int WT_SESSION::query_timestamp	(	WT_SESSION * 	session, char * 	hex_timestamp, const char * 	config )	
+    // int WT_SESSION::reconfigure	(	WT_SESSION * 	session, const char * 	config )
+    // int WT_SESSION::reset	(	WT_SESSION * 	session	)	
+    // int WT_SESSION::reset_snapshot	(	WT_SESSION * 	session	)	
+    // int WT_SESSION::rollback_transaction	(	WT_SESSION * 	session, const char * 	config )	
+    // int WT_SESSION::salvage	(	WT_SESSION * 	session, const char * 	name, const char * 	config )	
+    // const char* WT_SESSION::strerror	(	WT_SESSION * 	session, int 	error )	
+    // int WT_SESSION::timestamp_transaction	(	WT_SESSION * 	session, const char * 	config )	
+    // int WT_SESSION::timestamp_transaction_uint	(	WT_SESSION * 	session, WT_TS_TXN_TYPE 	which, uint64_t 	ts )		
+    // int WT_SESSION::transaction_pinned_range	(	WT_SESSION * 	session, uint64_t * 	range )	
+    // int WT_SESSION::truncate	(	WT_SESSION * 	session, const char * 	name, WT_CURSOR * 	start, WT_CURSOR * 	stop, const char * 	config )	
+    // int WT_SESSION::verify	(	WT_SESSION * 	session, const char * 	name, const char * 	config )	
+
+
+
+
     pub fn close(&self) -> Result<()> {
         let err_code =
             unsafe { unwrap_or_panic!((*self.session).close, self.session, std::ptr::null()) };
@@ -534,23 +613,6 @@ impl RawSession {
     pub fn log_printf(&self, _fmt: &str) -> Result<()> {
         // https://source.wiredtiger.com/2.5.2/struct_w_t___s_e_s_s_i_o_n.html#a504625d0b35da78f738d08530a409be9
         todo!()
-    }
-
-    pub fn rename(&self, uri: &str, new_uri: &str, config: &str) -> Result<()> {
-        // https://source.wiredtiger.com/2.5.2/struct_w_t___s_e_s_s_i_o_n.html#a1d24b02549009f78b7c6463da0247614
-        let uri = CString::new(uri).unwrap();
-        let new_uri = CString::new(new_uri).unwrap();
-        let config = CString::new(config).unwrap();
-        let err_code = unsafe {
-            unwrap_or_panic!(
-                (*self.session).rename,
-                self.session,
-                uri.as_ptr(),
-                new_uri.as_ptr(),
-                config.as_ptr()
-            )
-        };
-        make_result!(err_code, ())
     }
 
     pub fn salvage(&self, name: &str, config: &str) -> Result<()> {
@@ -697,6 +759,30 @@ impl CompareStatus {
 }
 
 impl RawCursor {
+    // int WT_CURSOR::bound	(	WT_CURSOR * 	cursor, const char * 	config )	
+    // int WT_CURSOR::close	(	WT_CURSOR * 	cursor	)	
+    // int WT_CURSOR::compare	(	WT_CURSOR * 	cursor, WT_CURSOR * 	other, int * 	comparep )	
+    // int WT_CURSOR::equals	(	WT_CURSOR * 	cursor, WT_CURSOR * 	other, int * 	equalp )	
+    // int WT_CURSOR::get_key	(	WT_CURSOR * 	cursor, ... )	
+    // int WT_CURSOR::get_raw_key_value	(	WT_CURSOR * 	cursor, WT_ITEM * 	key, WT_ITEM * 	value )	
+    // int WT_CURSOR::get_value	(	WT_CURSOR * 	cursor, ... )	
+    // int WT_CURSOR::insert	(	WT_CURSOR * 	cursor	)	
+    // int WT_CURSOR::largest_key	(	WT_CURSOR * 	cursor	)	
+    // int WT_CURSOR::modify	(	WT_CURSOR * 	cursor, WT_MODIFY * 	entries, int 	nentries )	
+    // int WT_CURSOR::next	(	WT_CURSOR * 	cursor	)	
+    // int WT_CURSOR::prev	(	WT_CURSOR * 	cursor	)	
+    // int WT_CURSOR::reconfigure	(	WT_CURSOR * 	cursor, const char * 	config )	
+    // int WT_CURSOR::remove	(	WT_CURSOR * 	cursor	)	
+    // int WT_CURSOR::reserve	(	WT_CURSOR * 	cursor	)	
+    // int WT_CURSOR::reset	(	WT_CURSOR * 	cursor	)	
+    // int WT_CURSOR::search	(	WT_CURSOR * 	cursor	)	
+    // int WT_CURSOR::search_near	(	WT_CURSOR * 	cursor, int * 	exactp )	
+    // void WT_CURSOR::set_key	(	WT_CURSOR * 	cursor, ... )	
+    // void WT_CURSOR::set_value	(	WT_CURSOR * 	cursor, ... )	
+    // int WT_CURSOR::update	(	WT_CURSOR * 	cursor	)
+
+
+
     pub fn close(&self) -> Result<()> {
         // https://source.wiredtiger.com/2.5.2/struct_w_t___c_u_r_s_o_r.html#aeea071f192cab12245a50fbe71c3460b
         let err_code = unsafe { unwrap_or_panic!((*self.cursor).close, self.cursor) };
