@@ -1,0 +1,9 @@
+[package]
+name = "wiredtiger-tests"
+publish = false
+
+
+[lib]
+
+[dependencies]
+wiredtiger = {workspace = true}
