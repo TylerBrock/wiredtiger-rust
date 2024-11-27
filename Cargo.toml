@@ -1,20 +1,8 @@
-[package]
-name = "wiredtiger"
-version = "11.2.0-2"
-edition = "2021"
-authors = ["Tyler Brock", "Mike O'Brien"]
-repository = "https://github.com/TylerBrock/wiredtiger-rust"
-keywords = [ "wiredtiger", "mongodb", "database" ]
-
 [workspace]
-members = ["libwiredtiger"]
+members=[
+    "crates/wiredtiger",
+    "crates/wiredtiger-tests",
+]
 
-[dependencies]
-libc = "0.2"
-libwiredtiger = { path = "libwiredtiger" }
-
-[dev-dependencies]
-tempfile = "3"
-assert_ok = "1.0.2"
-
-
+[workspace.dependencies]
+wiredtiger = { path = "crates/wiredtiger"}
