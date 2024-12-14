@@ -47,7 +47,7 @@ fn main() {
 
     // Tell cargo to look for shared libraries in the specified directory.
     // Note that this search path is relative to the repo root.
-    println!("cargo:rustc-link-search=crates/wiredtiger/libwiredtiger/wiredtiger/build");
+    println!("cargo:rustc-link-search=crates/wiredtiger/wiredtiger-sys/wiredtiger/build");
 
     // Tell cargo to tell rustc to statically link with the wiredtiger library.
     // This requires that WT was configured with the -DENABLE_STATIC=1 option to cmake.

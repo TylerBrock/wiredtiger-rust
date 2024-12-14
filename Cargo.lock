@@ -123,13 +123,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "libwiredtiger"
-version = "0.0.0"
-dependencies = [
- "bindgen",
-]
-
-[[package]]
 name = "linux-raw-sys"
 version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -369,8 +362,15 @@ version = "11.2.0-2"
 dependencies = [
  "assert_ok",
  "libc",
- "libwiredtiger",
  "tempfile",
+ "wiredtiger-sys",
+]
+
+[[package]]
+name = "wiredtiger-sys"
+version = "0.0.0"
+dependencies = [
+ "bindgen",
 ]
 
 [[package]]
