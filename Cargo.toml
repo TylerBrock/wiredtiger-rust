@@ -1,8 +1,7 @@
 [workspace]
-members=[
-    "crates/wiredtiger",
-    "crates/wiredtiger-tests",
-]
+members = ["crates/wiredtiger", "crates/wiredtiger-tests"]
 
 [workspace.dependencies]
-wiredtiger = { path = "crates/wiredtiger"}
+wiredtiger = { path = "crates/wiredtiger" }
+delegate = "0.13.1"
+libc = "0.2"

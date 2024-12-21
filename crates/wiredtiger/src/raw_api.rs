@@ -1,6 +1,5 @@
-use libc::{self, c_char, c_short};
+use libc::{self, c_char};
 use std::ffi::{CStr, CString};
-use std::os::raw;
 use std::ptr;
 use wiredtiger_sys as wtffi;
 
@@ -51,7 +50,7 @@ pub struct RawCursor {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Error {
-    message: String,
+    pub message: String,
 }
 
 impl Error {
@@ -59,6 +58,10 @@ impl Error {
         Self {
             message: error_message(code),
         }
+    }
+
+    pub fn new(message: String) -> Self {
+        Self { message }
     }
 }
 
@@ -405,6 +408,7 @@ impl RawConnection {
             unsafe { unwrap_or_panic!((*self.conn).reconfigure, self.conn, config.as_ptr()) };
         make_result!(err_code, ())
     }
+
     pub fn get_home(&self) -> Result<String> {
         // https://source.wiredtiger.com/2.5.2/struct_w_t___c_o_n_n_e_c_t_i_o_n.html#a488fcba6b5abcdfca439d456564e8640
         let home = unsafe { unwrap_or_panic!((*self.conn).get_home, self.conn) };
@@ -498,6 +502,7 @@ impl RawConnection {
                 &mut conn,
             )
         };
+        println!("error code is: {}", err_code);
         make_result!(err_code, RawConnection { conn })
     }
 
@@ -744,10 +749,6 @@ impl CompareStatus {
 }
 
 impl RawCursor {
-    // int WT_CURSOR::bound	(	WT_CURSOR * 	cursor, const char * 	config )
-    // int WT_CURSOR::close	(	WT_CURSOR * 	cursor	)
-    // int WT_CURSOR::compare	(	WT_CURSOR * 	cursor, WT_CURSOR * 	other, int * 	comparep )
-    // int WT_CURSOR::equals	(	WT_CURSOR * 	cursor, WT_CURSOR * 	other, int * 	equalp )
     // int WT_CURSOR::get_key	(	WT_CURSOR * 	cursor, ... )
     // int WT_CURSOR::get_raw_key_value	(	WT_CURSOR * 	cursor, WT_ITEM * 	key, WT_ITEM * 	value )
     // int WT_CURSOR::get_value	(	WT_CURSOR * 	cursor, ... )
@@ -766,62 +767,37 @@ impl RawCursor {
     // void WT_CURSOR::set_value	(	WT_CURSOR * 	cursor, ... )
     // int WT_CURSOR::update	(	WT_CURSOR * 	cursor	)
 
+    // pub fn largest_key(&self) -> Result<(), Error>{}
+    // pub fn modify(&self,	 WT_MODIFY * 	entries, int 	nentries ) -> Result<(), Error>{}
+    // pub fn next(&self) -> Result<(), Error>{}
+    // pub fn prev(&self) -> Result<(), Error>{}
+    // pub fn reconfigure(&self,const char * 	config ) -> Result<(), Error>{}
+    // pub fn remove(&self) -> Result<(), Error>{}
+    // pub fn reserve(&self) -> Result<(), Error>{}
+    // pub fn reset(&self) -> Result<(), Error>{}
+    // pub fn search(&self) -> Result<(), Error>{}
+    // pub fn search_near(&self,	WT_CURSOR * 	cursor, int * 	exactp ) -> Result<(), Error>{}
+    //
+    // pub fn get_key(&self,	, ... )
+    // pub fn get_raw_key_value(&self,	 WT_ITEM * 	key, WT_ITEM * 	value )
+    // pub fn get_value(&self,	 ... )
+    // void WT_CURSOR::set_key	(	WT_CURSOR * 	cursor, ... )
+    // void WT_CURSOR::set_value	(	WT_CURSOR * 	cursor, ... )
+    // pub fn WT_CURSOR::update	(	WT_CURSOR * 	cursor	)
+
+    pub fn bound(&self, config: &str) -> Result<()> {
+        let config = CString::new(config).unwrap();
+        let err_code =
+            unsafe { unwrap_or_panic!((*self.cursor).bound, self.cursor, config.as_ptr()) };
+        make_result!(err_code, ())
+    }
+
     pub fn close(&self) -> Result<()> {
-        // https://source.wiredtiger.com/2.5.2/struct_w_t___c_u_r_s_o_r.html#aeea071f192cab12245a50fbe71c3460b
         let err_code = unsafe { unwrap_or_panic!((*self.cursor).close, self.cursor) };
         make_result!(err_code, ())
     }
 
-    pub fn reconfigure(&self, config: &str) -> Result<()> {
-        // https://source.wiredtiger.com/2.5.2/struct_w_t___c_u_r_s_o_r.html#ad6a97a309e2c1ada7ca32a422c46612a
-        let config = CString::new(config).unwrap();
-        let err_code =
-            unsafe { unwrap_or_panic!((*self.cursor).reconfigure, self.cursor, config.as_ptr()) };
-        make_result!(err_code, ())
-    }
-
-    pub fn get_key(&self) -> Result<()> {
-        // https://source.wiredtiger.com/2.5.2/struct_w_t___c_u_r_s_o_r.html#af19f6f9d9c7fc248ab38879032620b2f
-        // todo!();
-        let err_code = unsafe {
-            let mut some_val: u16 = 0;
-            match (*self.cursor).get_key {
-                Some(get_key) => get_key(self.cursor, &some_val),
-                None => todo!(),
-            }
-            // (*self.cursor).get_key(self.cursor, &some_val)
-        };
-        make_result!(err_code, ())
-    }
-
-    pub fn get_value(&self) -> Result<()> {
-        // https://source.wiredtiger.com/2.5.2/struct_w_t___c_u_r_s_o_r.html#af85364a5af50b95bbc46c82e72f75c01
-        /*
-            Format	C Type	Python type	Notes
-            x	N/A	N/A	pad byte, no associated value
-            b	int8_t	int	signed byte
-            B	uint8_t	int	unsigned byte
-            h	int16_t	int	signed 16-bit
-            H	uint16_t	int	unsigned 16-bit
-            i	int32_t	int	signed 32-bit
-            I	uint32_t	int	unsigned 32-bit
-            l	int32_t	int	signed 32-bit
-            L	uint32_t	int	unsigned 32-bit
-            q	int64_t	int	signed 64-bit
-            Q	uint64_t	int	unsigned 64-bit
-            r	uint64_t	int	record number
-            s	char[]	str	fixed-length string
-            S	char[]	str	NUL-terminated string
-            t	uint8_t	int	fixed-length bit field
-            u	WT_ITEM *	bytes	raw byte array
-        */
-
-        todo!();
-    }
-
     pub fn compare(&self, other: &RawCursor) -> Result<CompareStatus> {
-        // https://source.wiredtiger.com/2.5.2/struct_w_t___c_u_r_s_o_r.html#acd3f345e375e26d223ad5c6f35dc15e8
-
         let mut comparep: i32 = 0;
 
         let err_code = unsafe {
@@ -836,8 +812,6 @@ impl RawCursor {
     }
 
     pub fn equals(&self, other: &RawCursor) -> Result<bool> {
-        // https://source.wiredtiger.com/2.5.2/struct_w_t___c_u_r_s_o_r.html#a6736da9b394239a201ba97761b7b941b
-
         let mut equalp: i32 = 0;
 
         let err_code = unsafe {
@@ -850,19 +824,97 @@ impl RawCursor {
         };
         make_result!(err_code, equalp == 1)
     }
+
+    //pub fn get_key(&self) -> Result<()> {
+    //    let err_code = unsafe {
+    //        let some_val: u16 = 0;
+    //        match (*self.cursor).get_key {
+    //            Some(get_key) => get_key(self.cursor, &some_val),
+    //            None => todo!(),
+    //        }
+    //        // (*self.cursor).get_key(self.cursor, &some_val)
+    //    };
+    //    make_result!(err_code, ())
+    //}
+
+    //pub fn get_value(&self) -> Result<()> {
+    //    // https://source.wiredtiger.com/2.5.2/struct_w_t___c_u_r_s_o_r.html#af85364a5af50b95bbc46c82e72f75c01
+    //    /*
+    //        Format	C Type	Python type	Notes
+    //        x	N/A	N/A	pad byte, no associated value
+    //        b	int8_t	int	signed byte
+    //        B	uint8_t	int	unsigned byte
+    //        h	int16_t	int	signed 16-bit
+    //        H	uint16_t	int	unsigned 16-bit
+    //        i	int32_t	int	signed 32-bit
+    //        I	uint32_t	int	unsigned 32-bit
+    //        l	int32_t	int	signed 32-bit
+    //        L	uint32_t	int	unsigned 32-bit
+    //        q	int64_t	int	signed 64-bit
+    //        Q	uint64_t	int	unsigned 64-bit
+    //        r	uint64_t	int	record number
+    //        s	char[]	str	fixed-length string
+    //        S	char[]	str	NUL-terminated string
+    //        t	uint8_t	int	fixed-length bit field
+    //        u	WT_ITEM *	bytes	raw byte array
+    //    */
+    //
+    //    todo!();
+    //}
+
+    pub fn insert(&self) -> Result<()> {
+        let err_code = unsafe { unwrap_or_panic!((*self.cursor).insert, self.cursor) };
+        make_result!(err_code, ())
+    }
+
+    pub fn largest_key(&self) -> Result<()> {
+        let err_code = unsafe { unwrap_or_panic!((*self.cursor).largest_key, self.cursor) };
+        make_result!(err_code, ())
+    }
+
+    pub fn modify(&self) {
+        //
+        //,	 WT_MODIFY * 	entries, int 	nentries ) -> Result<(), Error>{
+        todo!()
+    }
     pub fn next(&self) -> Result<()> {
-        // https://source.wiredtiger.com/2.5.2/struct_w_t___c_u_r_s_o_r.html#a0503f16bd8f3d05aa3552f229b3a8e1b
         let err_code = unsafe { unwrap_or_panic!((*self.cursor).next, self.cursor) };
         make_result!(err_code, ())
     }
     pub fn prev(&self) -> Result<()> {
-        // https://source.wiredtiger.com/2.5.2/struct_w_t___c_u_r_s_o_r.html#a43d6664d2f68902aa63f933864242e76
         let err_code = unsafe { unwrap_or_panic!((*self.cursor).prev, self.cursor) };
         make_result!(err_code, ())
     }
+
+    pub fn reconfigure(&self, config: &str) -> Result<()> {
+        let config = CString::new(config).unwrap();
+        let err_code =
+            unsafe { unwrap_or_panic!((*self.cursor).reconfigure, self.cursor, config.as_ptr()) };
+        make_result!(err_code, ())
+    }
+
+    pub fn remove(&self) -> Result<()> {
+        let err_code = unsafe { unwrap_or_panic!((*self.cursor).remove, self.cursor) };
+        make_result!(err_code, ())
+    }
+
+    pub fn reserve(&self) -> Result<()> {
+        todo!()
+    }
+    // pub fn reset(&self) -> Result<()>{}
+    // pub fn search(&self) -> Result<(), Error>{}
+    // pub fn search_near(&self,	WT_CURSOR * 	cursor, int * 	exactp ) -> Result<(), Error>{}
+
+    //
+    //
+
     pub fn reset(&self) -> Result<()> {
-        // https://source.wiredtiger.com/2.5.2/struct_w_t___c_u_r_s_o_r.html#afc1b42c22c9c85e1ba08ce3b34437565
         let err_code = unsafe { unwrap_or_panic!((*self.cursor).reset, self.cursor) };
+        make_result!(err_code, ())
+    }
+
+    pub fn search(&self) -> Result<()> {
+        let err_code = unsafe { unwrap_or_panic!((*self.cursor).search, self.cursor) };
         make_result!(err_code, ())
     }
     pub fn search_near(&self) -> Result<CompareStatus> {
@@ -878,73 +930,30 @@ impl RawCursor {
         };
         make_result!(err_code, CompareStatus::from_code(comparep))
     }
+    pub fn set_key(&self, key: &str) {
+        let key = CString::new(key.as_bytes()).unwrap();
 
-    pub fn insert(&self) -> Result<()> {
-        // https://source.wiredtiger.com/2.5.2/struct_w_t___c_u_r_s_o_r.html#aac90d9fbcc031570f924db55f8a1cee3
-        let err_code = unsafe { unwrap_or_panic!((*self.cursor).insert, self.cursor) };
-        make_result!(err_code, ())
+        unsafe {
+            unwrap_or_panic!((*self.cursor).set_key, self.cursor, key);
+        };
+    }
+
+    pub fn set_value(&self, value: &str) {
+        let value = CString::new(value.as_bytes()).unwrap();
+
+        unsafe {
+            unwrap_or_panic!((*self.cursor).set_value, self.cursor, value);
+        };
+    }
+
+    pub fn set_key_value(&self, key: &str, value: &str) {
+        self.set_key(key);
+        self.set_value(value);
     }
 
     pub fn update(&self) -> Result<()> {
-        // https://source.wiredtiger.com/2.5.2/struct_w_t___c_u_r_s_o_r.html#a444cdc0952e7f8d55d23173516c7037f
         let err_code = unsafe { unwrap_or_panic!((*self.cursor).insert, self.cursor) };
         make_result!(err_code, ())
-    }
-    pub fn remove(&self) -> Result<()> {
-        // https://source.wiredtiger.com/2.5.2/struct_w_t___c_u_r_s_o_r.html#abbba24fe607fee519c4c9c4669cd4455
-        let err_code = unsafe { unwrap_or_panic!((*self.cursor).remove, self.cursor) };
-        make_result!(err_code, ())
-    }
-
-    pub fn scan(&self) {
-        let key: *mut wtffi::WT_SESSION = ptr::null_mut();
-        let val: *mut wtffi::WT_SESSION = ptr::null_mut();
-        unsafe {
-            unwrap_or_panic!((*self.cursor).reset, self.cursor);
-            loop {
-                let result = unwrap_or_panic!((*self.cursor).next, self.cursor);
-                if result != 0 {
-                    break;
-                };
-                unwrap_or_panic!((*self.cursor).get_key, self.cursor, &key);
-                unwrap_or_panic!((*self.cursor).get_key, self.cursor, &val);
-            }
-        }
-    }
-
-    pub fn set(&self, key: &str, value: &str) -> Result<()> {
-        let ckey = CString::new(key).unwrap();
-        let cval = CString::new(value).unwrap();
-
-        let err_code = unsafe {
-            unwrap_or_panic!((*self.cursor).set_key, self.cursor, ckey.as_ptr());
-            unwrap_or_panic!((*self.cursor).set_value, self.cursor, cval.as_ptr());
-            unwrap_or_panic!((*self.cursor).insert, self.cursor)
-        };
-        make_result!(err_code, ())
-    }
-
-    pub fn search(&self, key: &str) -> Result<Option<String>> {
-        let ckey = CString::new(key).unwrap();
-        let mut val: *mut raw::c_char = ptr::null_mut();
-        let err_code = unsafe {
-            unwrap_or_panic!((*self.cursor).set_key, self.cursor, ckey.as_ptr());
-            unwrap_or_panic!((*self.cursor).search, self.cursor)
-        };
-        if err_code == wtffi::WT_NOTFOUND {
-            return Ok(None);
-        }
-        if err_code != 0 {
-            return Err(Error::from_code(err_code));
-        }
-        unsafe {
-            let err_code = unwrap_or_panic!((*self.cursor).get_value, self.cursor, &mut val);
-            if err_code != 0 {
-                return Err(Error::from_code(err_code));
-            }
-            let owned_val = CStr::from_ptr(val).to_string_lossy().into_owned();
-            Ok(Some(owned_val))
-        }
     }
 }
 
@@ -955,19 +964,32 @@ mod tests {
     #[test]
     fn test() {
         // Create a temp dir to put the WT files into, open a connection to it.
-        let temp_dir = tempfile::tempdir().unwrap();
-        let conn = RawConnection::open(temp_dir.path().to_str().unwrap(), "create").unwrap();
+        //let temp_dir = tempfile::tempdir().unwrap();
+        //println!("temp file is {:?}", temp_dir.path().to_str());
+        //let conn = RawConnection::open(temp_dir.path().to_str().unwrap(), "create").unwrap();
+        let conn = RawConnection::open("/tmp/wttest", "create").unwrap();
         let session = conn.open_session().unwrap();
 
         // Create a new table string keys and string values
         let create_result = session.create("table:mytable", "key_format=S,value_format=S");
         assert_ok!(create_result);
 
+        // insert a k/v
         let cursor = assert_ok!(session.open_cursor("table:mytable"));
-        assert_ok!(cursor.set("tyler", "brock"));
-        assert_ok!(cursor.set("mike", "obrien"));
-        println!("tyler: {:?}", cursor.search("tyler").unwrap());
-        println!("mike: {:?}", cursor.search("mike").unwrap());
+        cursor.set_key("tyler");
+        cursor.set_value("brock");
+        assert_ok!(cursor.insert());
+
+        // insert another k/v
+        cursor.set_key("mike");
+        cursor.set_value("obrien");
+        assert_ok!(cursor.insert());
+        assert_ok!(cursor.reset());
+
+        // search for the first inserted one again
+        cursor.set_key("tyler");
+        assert_ok!(cursor.search());
+        //cusror.get_value();
 
         assert_ok!(cursor.close());
         assert_ok!(session.close());
