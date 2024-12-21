@@ -22,6 +22,14 @@ impl Connection {
             conn: &self,
         })
     }
+
+    delegate! {
+        to self.raw_conn {
+            pub fn get_home(&self) -> Result<String>;
+            pub fn is_new(&self) -> bool ;
+            pub fn reconfigure(&self, config: &str) -> Result<()>;
+        }
+    }
 }
 
 impl std::fmt::Debug for Connection {
@@ -39,8 +47,12 @@ impl<'a> Session<'a> {
         })
     }
 
-    pub fn create(&self, name: &str, config: &str) -> Result<()> {
-        self.raw_session.create(name, config)
+    delegate! {
+        to self.raw_session{
+            pub fn create(&self, name: &str, config: &str) -> Result<()>;
+            pub fn compact(&self, name: &str, config: &str) -> Result<()>;
+            pub fn drop(&self, name: &str, config: &str) -> Result<()>;
+        }
     }
 }
 
@@ -55,19 +67,20 @@ impl<'a> Cursor<'a> {
 
     delegate! {
         to self.raw_cursor{
-            pub fn bound(&self, config: &str);
+            pub fn bound(&self, config: &str) -> Result<()> ;
+            pub fn get_raw_key_value(&self) -> Result<(Option<Vec<u8>>, Option<Vec<u8>>)>;
             pub fn insert(&self) -> Result<()>;
             pub fn largest_key(&self) -> Result<()>;
             // int WT_CURSOR::modify	(	WT_CURSOR * 	cursor, WT_MODIFY * 	entries, int 	nentries )
             pub fn next(&self) -> Result<()>;
             pub fn prev(&self) -> Result<()>;
-    // int WT_CURSOR::reconfigure	(	WT_CURSOR * 	cursor, const char * 	config )
-    // int WT_CURSOR::remove	(	WT_CURSOR * 	cursor	)
-    // int WT_CURSOR::reserve	(	WT_CURSOR * 	cursor	)
+            // int WT_CURSOR::reconfigure	(	WT_CURSOR * 	cursor, const char * 	config )
+            // int WT_CURSOR::remove	(	WT_CURSOR * 	cursor	)
+            // int WT_CURSOR::reserve	(	WT_CURSOR * 	cursor	)
             pub fn reset(&self) -> Result<()> ;
-    // int WT_CURSOR::search	(	WT_CURSOR * 	cursor	)
-    // int WT_CURSOR::search_near	(	WT_CURSOR * 	cursor, int * 	exactp )
-    // int WT_CURSOR::update	(	WT_CURSOR * 	cursor	)
+            pub fn search(&self) -> Result<()> ;
+            pub fn search_near(&self) -> Result<CompareStatus> ;
+            // int WT_CURSOR::update	(	WT_CURSOR * 	cursor	)
             pub fn set_key(&self, key: &str);
             pub fn set_value(&self, key: &str);
         }
@@ -126,40 +139,52 @@ mod tests {
         // Create a temp dir to put the WT files into, open a connection to it.
         let temp_dir = tempfile::tempdir().unwrap();
 
-        let conn = Connection::open(temp_dir.path().to_str().unwrap().into(), "create")
-            .expect("failed to open connection");
-        let sess = assert_ok!(conn.open_session());
-        assert_ok!(sess.create("table:foo", ""));
+        {
+            let conn = Connection::open(temp_dir.path().to_str().unwrap().into(), "create")
+                .expect("failed to open connection");
+            let sess = assert_ok!(conn.open_session());
+            assert_ok!(sess.create("table:foo", ""));
 
-        let create_result = sess.create("table:mytable", "key_format=S,value_format=S");
-        assert_ok!(create_result);
-        let cur = assert_ok!(sess.open_cursor("table:mytable"));
+            let create_result = sess.create("table:mytable", "key_format=S,value_format=S");
+            assert_ok!(create_result);
+            let cur = assert_ok!(sess.open_cursor("table:mytable"));
 
-        //cur.set_key("tyler");
-        //cur.set_value("brock");
-        //assert_ok!(cur.insert());
-        //assert_ok!(cur.set("mike", "obrien"));
-        //println!("tyler: {:?}", cursor.search("tyler").unwrap());
-        //println!("mike: {:?}", cursor.search("mike").unwrap());
-        //
-        //assert_ok!(cursor.close());
-        //assert_ok!(session.close());
-        //assert_ok!(conn.close());
+            cur.set_key("tyler");
+            cur.set_value("brock");
+            assert_ok!(cur.insert());
+
+            cur.set_key("mike");
+            cur.set_value("obrien");
+            assert_ok!(cur.insert());
+
+            cur.set_key("tyler");
+            assert_ok!(cur.search());
+
+            let (k, v) = assert_ok!(cur.get_raw_key_value());
+            let (k, v) = (k.unwrap(), v.unwrap());
+
+            assert_eq!(assert_ok!(std::str::from_utf8(&k)), "tyler");
+            assert_eq!(assert_ok!(std::str::from_utf8(&v)), "brock");
+        }
+
+        // Re-open the file and assert the data is still in there
+        {
+            let conn = Connection::open(temp_dir.path().to_str().unwrap().into(), "create")
+                .expect("failed to open connection");
+            let sess = assert_ok!(conn.open_session());
+            let cur = assert_ok!(sess.open_cursor("table:mytable"));
+
+            assert_ok!(cur.next());
+            let (k, v) = assert_ok!(cur.get_raw_key_value());
+            let (k, v) = (k.unwrap(), v.unwrap());
+            assert_eq!(assert_ok!(std::str::from_utf8(&k)), "mike");
+            assert_eq!(assert_ok!(std::str::from_utf8(&v)), "obrien");
+
+            assert_ok!(cur.next());
+            let (k, v) = assert_ok!(cur.get_raw_key_value());
+            let (k, v) = (k.unwrap(), v.unwrap());
+            assert_eq!(assert_ok!(std::str::from_utf8(&k)), "tyler");
+            assert_eq!(assert_ok!(std::str::from_utf8(&v)), "brock");
+        }
     }
 }
-
-//use proc_macro::TokenStream;
-// use quote::quote;
-// use syn::{parse_macro_input, ItemFn};
-
-//#[proc_macro_attribute]
-//pub fn wiredtiger_format(
-//    attr: proc_macro::TokenStream,
-//    item: proc_macro::TokenStream,
-//) -> proc_macro::TokenStream {
-//    println!("attr: \"{attr}\"");
-//    println!("item: \"{item}\"");
-//
-//    item
-//}
-//
