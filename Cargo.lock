@@ -70,6 +70,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "delegate"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc2323e10c92e1cf4d86e11538512e6dc03ceb586842970b6332af3d4046a046"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "either"
 version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -120,13 +131,6 @@ checksum = "4979f22fdb869068da03c9f7528f8297c6fd2606bc3a4affe42e6a823fdb8da4"
 dependencies = [
  "cfg-if",
  "windows-targets",
-]
-
-[[package]]
-name = "libwiredtiger"
-version = "0.0.0"
-dependencies = [
- "bindgen",
 ]
 
 [[package]]
@@ -368,7 +372,22 @@ name = "wiredtiger"
 version = "11.2.0-2"
 dependencies = [
  "assert_ok",
+ "delegate",
  "libc",
- "libwiredtiger",
  "tempfile",
+ "wiredtiger-sys",
+]
+
+[[package]]
+name = "wiredtiger-sys"
+version = "0.0.0"
+dependencies = [
+ "bindgen",
+]
+
+[[package]]
+name = "wiredtiger-tests"
+version = "0.0.0"
+dependencies = [
+ "wiredtiger",
 ]

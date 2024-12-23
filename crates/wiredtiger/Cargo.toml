@@ -1,0 +1,16 @@
+[package]
+name = "wiredtiger"
+version = "11.2.0-2"
+edition = "2021"
+authors = ["Tyler Brock", "Mike O'Brien"]
+repository = "https://github.com/TylerBrock/wiredtiger-rust"
+keywords = ["wiredtiger", "mongodb", "database"]
+
+[dependencies]
+wiredtiger-sys = { path = "wiredtiger-sys" }
+delegate = { workspace = true }
+libc = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"
+assert_ok = "1.0.2"
