@@ -29,6 +29,7 @@ macro_rules! make_result {
             Ok($ok)
         } else {
             Err(Error {
+                code: $err_code,
                 message: error_message($err_code),
             })
         }
@@ -61,19 +62,29 @@ pub struct RawCursor {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Error {
+    pub code: i32,
     pub message: String,
 }
 
 impl Error {
     fn from_code(code: i32) -> Self {
         Self {
+            code,
             message: error_message(code),
         }
     }
 
-    pub fn new(message: String) -> Self {
-        Self { message }
+    pub fn new<S: Into<String>>(message: S) -> Self {
+        Self {
+            code: 0,
+            message: message.into(),
+        }
     }
+}
+
+struct Modify<'a> {
+    data: &'a [u8],
+    offset: usize,
 }
 
 struct OpenConfig {
@@ -441,12 +452,14 @@ impl RawConnection {
             // Convert the `CStr` to a Rust `String`
             match c_str.to_str() {
                 Ok(rust_string) => Ok(rust_string.to_owned()),
-                Err(e) => Err(Error {
-                    message: format!("Failed to convert C string to Rust string: {}", e),
-                }),
+                Err(e) => Err(Error::new(format!(
+                    "Failed to convert C string to Rust string: {}",
+                    e
+                ))),
             }
         } else {
             Err(Error {
+                code: 0,
                 message: "received null from calling get_home on WT_CONNECTION".to_string(),
             })
         }
@@ -567,9 +580,21 @@ impl RawSession {
     }
     // pub fn prepare_transaction(&self, const char * config )
     // pub fn query_timestamp(&self, char * hex_timestamp, const char * config )
-    // pub fn reconfigure(&self, const char * config )
-    // pub fn reset(&self)
-    // pub fn reset_snapshot(&self)
+    pub fn reconfigure(&self, config: &str) -> Result<()> {
+        let config = CString::new(config).unwrap();
+        let err_code =
+            unsafe { unwrap_or_panic!((*self.session).reconfigure, self.session, config.as_ptr()) };
+        make_result!(err_code, ())
+    }
+
+    pub fn reset(&self) -> Result<()> {
+        let err_code = unsafe { unwrap_or_panic!((*self.session).reset, self.session) };
+        make_result!(err_code, ())
+    }
+    pub fn reset_snapshot(&self) -> Result<()> {
+        let err_code = unsafe { unwrap_or_panic!((*self.session).reset_snapshot, self.session) };
+        make_result!(err_code, ())
+    }
     // pub fn rollback_transaction(&self, const char * config )
     // pub fn salvage(&self, const char * name, const char * config )
     // pub fn set_last_error(&self, int err, int sub_level_err )
@@ -726,10 +751,22 @@ impl RawCursor {
         make_result!(err_code, ())
     }
 
-    pub fn modify(&self) {
-        //
-        //,	 WT_MODIFY * 	entries, int 	nentries ) -> Result<(), Error>{
-        todo!()
+    pub fn modify<'a, M: Iterator<Item = Modify<'a>>>(&self, ms: M) {
+        let ms: Vec<_> = ms
+            .map(|m| wtffi::WT_MODIFY {
+                data: wtffi::WT_ITEM {
+                    data: m.data.as_ptr() as *const c_void,
+                    size: m.data.len(),
+                    mem: std::ptr::null::<c_void>() as *mut c_void,
+                    memsize: 0,
+                    flags: 0,
+                },
+                offset: m.offset,
+                size: todo!(),
+            })
+            .collect();
+
+        panic!("Asf");
     }
     pub fn next(&self) -> Result<()> {
         let err_code = unsafe { unwrap_or_panic!((*self.cursor).next, self.cursor) };
@@ -753,14 +790,9 @@ impl RawCursor {
     }
 
     pub fn reserve(&self) -> Result<()> {
-        todo!()
+        let err_code = unsafe { unwrap_or_panic!((*self.cursor).reserve, self.cursor) };
+        make_result!(err_code, ())
     }
-    // pub fn reset(&self) -> Result<()>{}
-    // pub fn search(&self) -> Result<(), Error>{}
-    // pub fn search_near(&self,	WT_CURSOR * 	cursor, int * 	exactp ) -> Result<(), Error>{}
-
-    //
-    //
 
     pub fn reset(&self) -> Result<()> {
         let err_code = unsafe { unwrap_or_panic!((*self.cursor).reset, self.cursor) };
@@ -804,23 +836,21 @@ impl RawCursor {
         self.set_value(value);
     }
 
-    //pub fn update(&self) -> Result<()> {
-    //    let err_code = unsafe { unwrap_or_panic!((*self.cursor).insert, self.cursor) };
-    //    make_result!(err_code, ())
-    //}
+    pub fn update(&self) -> Result<()> {
+        let err_code = unsafe { unwrap_or_panic!((*self.cursor).insert, self.cursor) };
+        make_result!(err_code, ())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use assert_ok::assert_ok;
+
     #[test]
     fn test() {
-        // Create a temp dir to put the WT files into, open a connection to it.
-        //let temp_dir = tempfile::tempdir().unwrap();
-        //println!("temp file is {:?}", temp_dir.path().to_str());
-        //let conn = RawConnection::open(temp_dir.path().to_str().unwrap(), "create").unwrap();
-        let conn = RawConnection::open("/tmp/wttest", "create").unwrap();
+        let temp_dir = tempfile::tempdir().unwrap();
+        let conn = RawConnection::open(temp_dir.path().to_str().unwrap(), "create").unwrap();
         let session = conn.open_session().unwrap();
 
         // Create a new table string keys and string values

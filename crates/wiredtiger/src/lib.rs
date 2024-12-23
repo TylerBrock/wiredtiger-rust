@@ -52,6 +52,9 @@ impl<'a> Session<'a> {
             pub fn create(&self, name: &str, config: &str) -> Result<()>;
             pub fn compact(&self, name: &str, config: &str) -> Result<()>;
             pub fn drop(&self, name: &str, config: &str) -> Result<()>;
+            pub fn reconfigure(&self,  config: &str) -> Result<()>;
+            pub fn reset(&self) -> Result<()>;
+            pub fn reset_snapshot(&self) -> Result<()>;
         }
     }
 }
@@ -74,13 +77,13 @@ impl<'a> Cursor<'a> {
             // int WT_CURSOR::modify	(	WT_CURSOR * 	cursor, WT_MODIFY * 	entries, int 	nentries )
             pub fn next(&self) -> Result<()>;
             pub fn prev(&self) -> Result<()>;
-            // int WT_CURSOR::reconfigure	(	WT_CURSOR * 	cursor, const char * 	config )
-            // int WT_CURSOR::remove	(	WT_CURSOR * 	cursor	)
-            // int WT_CURSOR::reserve	(	WT_CURSOR * 	cursor	)
+            pub fn reconfigure(&self, config: &str) -> Result<()>;
+            pub fn remove(&self) -> Result<()>;
+            pub fn reserve(&self) -> Result<()>;
             pub fn reset(&self) -> Result<()> ;
             pub fn search(&self) -> Result<()> ;
             pub fn search_near(&self) -> Result<CompareStatus> ;
-            // int WT_CURSOR::update	(	WT_CURSOR * 	cursor	)
+            pub fn update(&self) -> Result<()>;
             pub fn set_key(&self, key: &str);
             pub fn set_value(&self, key: &str);
         }
@@ -119,7 +122,6 @@ struct Session<'a> {
 mod tests {
     use super::{Connection, Error};
     use assert_ok::assert_ok;
-    use tempfile::TempDir;
 
     // Tests that opening a database (without "create")
     // returns an error when the file does not exist.
@@ -127,7 +129,7 @@ mod tests {
     fn test_open_not_found() {
         let temp_dir = tempfile::tempdir().unwrap();
         let res = Connection::open(temp_dir.path().to_str().unwrap().into(), "");
-        if let Err(Error { message }) = res {
+        if let Err(Error { code, message }) = res {
             assert_eq!(message, "WT_TRY_SALVAGE: database corruption detected");
         } else {
             panic!("expected an error");
@@ -186,5 +188,50 @@ mod tests {
             assert_eq!(assert_ok!(std::str::from_utf8(&k)), "tyler");
             assert_eq!(assert_ok!(std::str::from_utf8(&v)), "brock");
         }
+    }
+
+    #[test]
+    fn test_reconfigure() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let conn = Connection::open(temp_dir.path().to_str().unwrap().into(), "create")
+            .expect("failed to open connection");
+        let sess = assert_ok!(conn.open_session());
+
+        // Calling connection reconfigure with an invalid config string fails
+        assert!(matches!(
+            conn.reconfigure("bogus"),
+            Err(Error {
+                code,
+                message,
+            })
+            if message == "Invalid argument" && code == libc::EINVAL
+        ));
+
+        // Calling session reconfigure with an invalid config string fails
+        assert!(matches!(
+            sess.reconfigure("bogus"),
+            Err(Error {
+                code,
+                message,
+            })
+            if message == "Invalid argument" && code == libc::EINVAL
+        ));
+
+        // Calling cursor reconfigure with an invalid config string fails
+        assert_ok!(sess.create("table:foo", ""));
+        let cur = assert_ok!(sess.open_cursor("table:foo"));
+        assert!(matches!(
+            cur.reconfigure("bogus"),
+            Err(Error {
+                code,
+                message,
+            })
+            if message == "Invalid argument" && code == libc::EINVAL
+        ));
+
+        // Reconfigure with valid args is successful
+        assert_ok!(sess.reconfigure("cache_max_wait_ms=12"));
+        assert_ok!(conn.reconfigure("eviction_target=75"));
+        assert_ok!(cur.reconfigure("append=true"));
     }
 }
