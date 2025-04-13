@@ -12,19 +12,6 @@ macro_rules! unwrap_or_panic {
     };
 }
 
-//macro_rules! struct_size {
-//    ($session:expr, $format: expr $(, $args:expr)* $(,)?) => {
-//        let format = CString::new($format).unwrap();
-//        unsafe {
-//            let lenp: size_t = 0;
-//            $(
-//                        wtffi::wiredtiger_struct_pack(session, lenp.as_ptr(), format.as_ptr(), $args);
-//            )*
-//            lenp
-//        }
-//    };
-//}
-
 pub(crate) unsafe fn raw_data(ptr: *const c_char, size: usize) -> Option<Vec<u8>> {
     if ptr.is_null() {
         None
@@ -603,6 +590,23 @@ impl RawSession {
     }
     // pub fn get_last_error(&self, int * err, int * sub_level_err, const char ** err_msg )
     // pub fn log_flush(&self, const char * config )
+    // pub fn log_printf(&self, const char * format, ... )
+    pub fn open_cursor(&self, uri: &str) -> Result<RawCursor> {
+        let uri = CString::new(uri).unwrap();
+        let mut cursor: *mut wtffi::WT_CURSOR = ptr::null_mut();
+        let cursor_null: *const wtffi::WT_CURSOR = ptr::null();
+        let result = unsafe {
+            unwrap_or_panic!(
+                (*self.session).drop,
+                self.session,
+                name.as_ptr(),
+                config.as_ptr()
+            )
+        };
+        make_result!(err_code, ())
+    }
+    // pub fn get_last_error(&self, int * err, int * sub_level_err, const char ** err_msg )
+    // pub fn log_flush(&self, const char * config )
 
     pub fn open_cursor(
         &self,
@@ -638,6 +642,7 @@ impl RawSession {
         };
         make_result!(result, RawCursor { cursor })
     }
+
     pub fn prepare_transaction(&self, config: &str) -> Result<()> {
         let config = CString::new(config).unwrap();
         let err_code = unsafe {
@@ -649,6 +654,7 @@ impl RawSession {
         };
         make_result!(err_code, ())
     }
+
     // pub fn query_timestamp(&self, char * hex_timestamp, const char * config )
     pub fn reconfigure(&self, config: &str) -> Result<()> {
         let config = CString::new(config).unwrap();
@@ -825,7 +831,6 @@ impl RawCursor {
     }
 
     pub fn insert(&self) -> Result<()> {
-        println!("INSERT!!!!!!");
         let err_code = unsafe { unwrap_or_panic!((*self.cursor).insert, self.cursor) };
         make_result!(err_code, ())
     }
@@ -901,13 +906,10 @@ impl RawCursor {
         make_result!(err_code, CompareStatus::from_code(comparep))
     }
     pub fn set_key(&self, key: &str) {
-        println!("SET KEY!!!!!! {}", key);
-        //let keylen = key.len();
         let key = CString::new(key).unwrap();
 
         unsafe {
             unwrap_or_panic!((*self.cursor).set_key, self.cursor, key);
-            //unwrap_or_panic!((*self.cursor).set_key, self.cursor,keylen, key);
         };
     }
 
