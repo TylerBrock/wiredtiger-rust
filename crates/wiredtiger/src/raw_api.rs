@@ -28,10 +28,7 @@ macro_rules! make_result {
         if $err_code == 0 {
             Ok($ok)
         } else {
-            Err(Error {
-                code: $err_code,
-                message: error_message($err_code),
-            })
+            Err(Error::from_code($err_code))
         }
     };
 }
@@ -56,6 +53,7 @@ pub struct RawSession {
     session: *mut wtffi::WT_SESSION,
 }
 
+#[derive(Clone)]
 pub struct RawCursor {
     cursor: *mut wtffi::WT_CURSOR,
 }
@@ -458,10 +456,9 @@ impl RawConnection {
                 ))),
             }
         } else {
-            Err(Error {
-                code: 0,
-                message: "received null from calling get_home on WT_CONNECTION".to_string(),
-            })
+            Err(Error::new(
+                "received null from calling get_home on WT_CONNECTION".to_string(),
+            ))
         }
     }
 
@@ -504,8 +501,30 @@ impl RawConnection {
 }
 
 impl RawSession {
-    // pub fn alter(&self, const char * name, const char * config )
-    // pub fn begin_transaction(&self, const char * config )
+    pub fn alter(&self, name: &str, config: &str) -> Result<()> {
+        let name = CString::new(name).unwrap();
+        let config = CString::new(config).unwrap();
+        let err_code = unsafe {
+            unwrap_or_panic!(
+                (*self.session).alter,
+                self.session,
+                name.as_ptr(),
+                config.as_ptr()
+            )
+        };
+        make_result!(err_code, ())
+    }
+    pub fn begin_transaction(&self, config: &str) -> Result<()> {
+        let config = CString::new(config).unwrap();
+        let err_code = unsafe {
+            unwrap_or_panic!(
+                (*self.session).begin_transaction,
+                self.session,
+                config.as_ptr()
+            )
+        };
+        make_result!(err_code, ())
+    }
     // pub fn bind_configuration(&self, const char * compiled, ... )
     // pub fn checkpoint(&self, const char * config )
 
@@ -515,7 +534,17 @@ impl RawSession {
         make_result!(err_code, ())
     }
 
-    // pub fn commit_transaction(&self, const char * config )
+    pub fn commit_transaction(&self, config: &str) -> Result<()> {
+        let config = CString::new(config).unwrap();
+        let err_code = unsafe {
+            unwrap_or_panic!(
+                (*self.session).commit_transaction,
+                self.session,
+                config.as_ptr()
+            )
+        };
+        make_result!(err_code, ())
+    }
 
     pub fn compact(&self, name: &str, config: &str) -> Result<()> {
         let name = CString::new(name).unwrap();
@@ -568,17 +597,64 @@ impl RawSession {
         let cursor_null: *const wtffi::WT_CURSOR = ptr::null();
         let result = unsafe {
             unwrap_or_panic!(
-                (*self.session).open_cursor,
+                (*self.session).drop,
                 self.session,
-                uri.as_ptr(),
-                cursor_null as *mut wtffi::WT_CURSOR,
-                ptr::null(),
-                &mut cursor
+                name.as_ptr(),
+                config.as_ptr()
             )
+        };
+        make_result!(err_code, ())
+    }
+    // pub fn get_last_error(&self, int * err, int * sub_level_err, const char ** err_msg )
+    // pub fn log_flush(&self, const char * config )
+
+    pub fn open_cursor(
+        &self,
+        uri: &str,
+        config: &str,
+        to_dup: Option<RawCursor>,
+    ) -> Result<RawCursor> {
+        let mut cursor: *mut wtffi::WT_CURSOR = ptr::null_mut();
+        let config = CString::new(config).unwrap();
+        let result = match to_dup {
+            Some(to_dup) => unsafe {
+                unwrap_or_panic!(
+                    (*self.session).open_cursor,
+                    self.session,
+                    std::ptr::null(),
+                    to_dup.cursor,
+                    config.as_ptr(),
+                    &mut cursor
+                )
+            },
+            None => unsafe {
+                let cursor_null: *const wtffi::WT_CURSOR = ptr::null();
+                let uri = CString::new(uri).unwrap();
+                unwrap_or_panic!(
+                    (*self.session).open_cursor,
+                    self.session,
+                    uri.as_ptr(),
+                    cursor_null as *mut wtffi::WT_CURSOR,
+                    config.as_ptr(),
+                    &mut cursor
+                )
+            },
         };
         make_result!(result, RawCursor { cursor })
     }
-    // pub fn prepare_transaction(&self, const char * config )
+
+    pub fn prepare_transaction(&self, config: &str) -> Result<()> {
+        let config = CString::new(config).unwrap();
+        let err_code = unsafe {
+            unwrap_or_panic!(
+                (*self.session).prepare_transaction,
+                self.session,
+                config.as_ptr()
+            )
+        };
+        make_result!(err_code, ())
+    }
+
     // pub fn query_timestamp(&self, char * hex_timestamp, const char * config )
     pub fn reconfigure(&self, config: &str) -> Result<()> {
         let config = CString::new(config).unwrap();
@@ -591,11 +667,24 @@ impl RawSession {
         let err_code = unsafe { unwrap_or_panic!((*self.session).reset, self.session) };
         make_result!(err_code, ())
     }
+
     pub fn reset_snapshot(&self) -> Result<()> {
         let err_code = unsafe { unwrap_or_panic!((*self.session).reset_snapshot, self.session) };
         make_result!(err_code, ())
     }
-    // pub fn rollback_transaction(&self, const char * config )
+
+    pub fn rollback_transaction(&self, config: &str) -> Result<()> {
+        let config = CString::new(config).unwrap();
+        let err_code = unsafe {
+            unwrap_or_panic!(
+                (*self.session).rollback_transaction,
+                self.session,
+                config.as_ptr()
+            )
+        };
+        make_result!(err_code, ())
+    }
+
     // pub fn salvage(&self, const char * name, const char * config )
     // pub fn set_last_error(&self, int err, int sub_level_err )
     // const char* strerror(&self, int error )
@@ -752,21 +841,22 @@ impl RawCursor {
     }
 
     pub fn modify<'a, M: Iterator<Item = Modify<'a>>>(&self, ms: M) {
-        let ms: Vec<_> = ms
-            .map(|m| wtffi::WT_MODIFY {
-                data: wtffi::WT_ITEM {
-                    data: m.data.as_ptr() as *const c_void,
-                    size: m.data.len(),
-                    mem: std::ptr::null::<c_void>() as *mut c_void,
-                    memsize: 0,
-                    flags: 0,
-                },
-                offset: m.offset,
-                size: todo!(),
-            })
-            .collect();
-
-        panic!("Asf");
+        todo!();
+        //let ms: Vec<_> = ms
+        //    .map(|m| wtffi::WT_MODIFY {
+        //        data: wtffi::WT_ITEM {
+        //            data: m.data.as_ptr() as *const c_void,
+        //            size: m.data.len(),
+        //            mem: std::ptr::null::<c_void>() as *mut c_void,
+        //            memsize: 0,
+        //            flags: 0,
+        //        },
+        //        offset: m.offset,
+        //        size: todo!(),
+        //    })
+        //    .collect();
+        //
+        //panic!("Asf");
     }
     pub fn next(&self) -> Result<()> {
         let err_code = unsafe { unwrap_or_panic!((*self.cursor).next, self.cursor) };
@@ -846,6 +936,7 @@ impl RawCursor {
 mod tests {
     use super::*;
     use assert_ok::assert_ok;
+    use libc::size_t;
 
     #[test]
     fn test() {
@@ -858,7 +949,7 @@ mod tests {
         assert_ok!(create_result);
 
         // insert a k/v
-        let cursor = assert_ok!(session.open_cursor("table:mytable"));
+        let cursor = assert_ok!(session.open_cursor("table:mytable", "", None));
         cursor.set_key("tyler");
         cursor.set_value("brock");
         assert_ok!(cursor.insert());
@@ -881,5 +972,29 @@ mod tests {
         assert_ok!(cursor.close());
         assert_ok!(session.close());
         assert_ok!(conn.close());
+    }
+
+    #[test]
+    fn test_struct_size() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let conn = RawConnection::open(temp_dir.path().to_str().unwrap(), "create").unwrap();
+        let session = conn.open_session().unwrap();
+        let x: usize = 2;
+        let out: usize = 2;
+        let format = CString::new("iS").unwrap();
+        let foo = unsafe {
+            let mut lenp: size_t = 0;
+            let err_code = wtffi::wiredtiger_struct_size(
+                session.session as *mut wtffi::WT_SESSION,
+                &mut lenp as *mut usize,
+                format.as_ptr(),
+                212312241414 as usize,
+                format.as_ptr(),
+            );
+
+            make_result!(err_code, lenp as usize)
+        };
+
+        println!("foo is {}", assert_ok!(foo));
     }
 }

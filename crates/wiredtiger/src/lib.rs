@@ -38,23 +38,56 @@ impl std::fmt::Debug for Connection {
     }
 }
 
+struct Transaction<'a> {
+    session: &'a Session<'a>,
+    finished: bool,
+}
+
+impl<'a> Transaction<'a> {
+    fn commit(&mut self, config: &str) -> Result<()> {
+        self.session.commit_transaction(config)?;
+        self.finished = true;
+        Ok(())
+    }
+
+    fn prepare(&mut self, config: &str) -> Result<()> {
+        self.session.prepare_transaction(config)
+    }
+
+
+    fn rollback(&mut self, config: &str) -> Result<()> {
+        self.session.rollback_transaction(config)?;
+        self.finished = true;
+        Ok(())
+    }
+}
+
 impl<'a> Session<'a> {
-    pub fn open_cursor(&self, uri: &str) -> Result<Cursor> {
-        let raw_cursor = self.raw_session.open_cursor(uri)?;
+    pub fn open_cursor(&self, uri: &str, config: &str) -> Result<Cursor> {
+        let raw_cursor = self.raw_session.open_cursor(uri, config, None)?;
         Ok(Cursor {
             session: &self,
             raw_cursor,
         })
     }
 
+    pub fn transaction(&self, config: &str) -> Result<Transaction> {
+        self.begin_transaction(config)?;
+        Ok(Transaction { session: &self, finished: false })
+    }
+
     delegate! {
         to self.raw_session{
+            pub fn begin_transaction(&self, config: &str) -> Result<()> ;
+            pub fn commit_transaction(&self, config: &str) -> Result<()> ;
             pub fn create(&self, name: &str, config: &str) -> Result<()>;
             pub fn compact(&self, name: &str, config: &str) -> Result<()>;
             pub fn drop(&self, name: &str, config: &str) -> Result<()>;
+            pub fn prepare_transaction(&self, config: &str) -> Result<()> ;
             pub fn reconfigure(&self,  config: &str) -> Result<()>;
             pub fn reset(&self) -> Result<()>;
             pub fn reset_snapshot(&self) -> Result<()>;
+            pub fn rollback_transaction(&self, config: &str) -> Result<()> ;
         }
     }
 }
@@ -66,6 +99,17 @@ impl<'a> Cursor<'a> {
 
     pub fn equals(&self, other: Cursor) -> Result<bool> {
         self.raw_cursor.equals(&other.raw_cursor)
+    }
+
+    pub fn duplicate(&self, config: &str) -> Result<Cursor> {
+        Ok(Cursor {
+            session: &self.session,
+            raw_cursor: self.session.raw_session.open_cursor(
+                "",
+                config,
+                Some(self.raw_cursor.clone()),
+            )?,
+        })
     }
 
     delegate! {
@@ -129,7 +173,7 @@ mod tests {
     fn test_open_not_found() {
         let temp_dir = tempfile::tempdir().unwrap();
         let res = Connection::open(temp_dir.path().to_str().unwrap().into(), "");
-        if let Err(Error { code, message }) = res {
+        if let Err(Error { code: _, message }) = res {
             assert_eq!(message, "WT_TRY_SALVAGE: database corruption detected");
         } else {
             panic!("expected an error");
@@ -149,7 +193,7 @@ mod tests {
 
             let create_result = sess.create("table:mytable", "key_format=S,value_format=S");
             assert_ok!(create_result);
-            let cur = assert_ok!(sess.open_cursor("table:mytable"));
+            let cur = assert_ok!(sess.open_cursor("table:mytable", ""));
 
             cur.set_key("tyler");
             cur.set_value("brock");
@@ -174,7 +218,7 @@ mod tests {
             let conn = Connection::open(temp_dir.path().to_str().unwrap().into(), "create")
                 .expect("failed to open connection");
             let sess = assert_ok!(conn.open_session());
-            let cur = assert_ok!(sess.open_cursor("table:mytable"));
+            let cur = assert_ok!(sess.open_cursor("table:mytable", ""));
 
             assert_ok!(cur.next());
             let (k, v) = assert_ok!(cur.get_raw_key_value());
@@ -188,6 +232,87 @@ mod tests {
             assert_eq!(assert_ok!(std::str::from_utf8(&k)), "tyler");
             assert_eq!(assert_ok!(std::str::from_utf8(&v)), "brock");
         }
+    }
+
+    /// Tests that the key/val inserted within a transaction is not
+    /// visible to other sessions before it is committed, and becomes
+    /// visible after it is committed.
+    #[test]
+    fn test_transaction_commit() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let conn = Connection::open(temp_dir.path().to_str().unwrap().into(), "create")
+            .expect("failed to open connection");
+
+        // Open two sessions
+        let sess1 = assert_ok!(conn.open_session());
+        let sess2 = assert_ok!(conn.open_session());
+
+        // Insert two entries on the first session, but within a transaction
+        assert_ok!(sess1.create("table:foo", "key_format=S,value_format=S"));
+        let cur = assert_ok!(sess1.open_cursor("table:foo", ""));
+        let mut _txn1 =  sess1.transaction("name=foo").expect("begin txn failed");
+        cur.set_key("tyler");
+        cur.set_value("brock");
+
+        assert_ok!(cur.insert());
+
+        // inserted the doc, but txn is not yet committed so session 2 can't see it yet.
+        let cur2 = assert_ok!(sess2.open_cursor("table:foo", ""));
+        cur2.set_key("tyler");
+        assert!(matches!(cur2.search(), Err(Error { code, .. }) if code == -31803,));
+        drop(cur2);
+
+        // now let's commit the txn
+        _txn1.commit("").expect("commit failed");
+
+
+        // after committing, the key that was inserted now becomes visible
+        let cur2 = assert_ok!(sess2.open_cursor("table:foo", ""));
+        cur2.set_key("tyler");
+        assert_ok!(cur2.search());
+
+        let (k, v) = assert_ok!(cur2.get_raw_key_value());
+        let (k, v) = (k.unwrap(), v.unwrap());
+        assert_eq!(assert_ok!(std::str::from_utf8(&k)), "tyler");
+        assert_eq!(assert_ok!(std::str::from_utf8(&v)), "brock");
+    }
+
+    /// Tests that the key/val inserted within a transaction is not
+    /// visible to other sessions before it is committed, and becomes
+    /// visible after it is committed.
+    #[test]
+    fn test_transaction_rollback() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let conn = Connection::open(temp_dir.path().to_str().unwrap().into(), "create")
+            .expect("failed to open connection");
+
+        // Open two sessions
+        let sess1 = assert_ok!(conn.open_session());
+        let sess2 = assert_ok!(conn.open_session());
+
+        // Insert two entries on the first session, but within a transaction
+        assert_ok!(sess1.create("table:foo", "key_format=S,value_format=S"));
+        let cur = assert_ok!(sess1.open_cursor("table:foo", ""));
+        let mut _txn1 =  sess1.transaction("name=foo").expect("begin txn failed");
+        cur.set_key("tyler");
+        cur.set_value("brock");
+
+        assert_ok!(cur.insert());
+
+        // inserted the doc, but txn is not yet committed so session 2 can't see it yet.
+        let cur2 = assert_ok!(sess2.open_cursor("table:foo", ""));
+        cur2.set_key("tyler");
+        assert!(matches!(cur2.search(), Err(Error { code, .. }) if code == -31803,));
+        drop(cur2);
+
+        // now let's commit the txn
+        //_txn1.rollback("").expect("rollback failed");
+        drop(_txn1);
+
+        // after rollback, the key that was inserted is still not there
+        let cur2 = assert_ok!(sess2.open_cursor("table:foo", ""));
+        cur2.set_key("tyler");
+        assert!(matches!(cur2.search(), Err(Error { code, .. }) if code == -31803,));
     }
 
     #[test]
@@ -219,7 +344,7 @@ mod tests {
 
         // Calling cursor reconfigure with an invalid config string fails
         assert_ok!(sess.create("table:foo", ""));
-        let cur = assert_ok!(sess.open_cursor("table:foo"));
+        let cur = assert_ok!(sess.open_cursor("table:foo", ""));
         assert!(matches!(
             cur.reconfigure("bogus"),
             Err(Error {
