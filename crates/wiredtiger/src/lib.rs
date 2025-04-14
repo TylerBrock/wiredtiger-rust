@@ -1,5 +1,7 @@
+#[allow(dead_code)]
 mod raw_api;
 
+#[allow(dead_code)]
 mod config;
 
 use delegate::delegate;
@@ -10,6 +12,7 @@ struct Connection {
     raw_conn: raw_api::RawConnection,
 }
 
+#[allow(dead_code)]
 impl Connection {
     pub fn open(filename: &str, options: &str) -> Result<Self> {
         let raw_conn = RawConnection::open(filename, options)?;
@@ -43,6 +46,7 @@ struct Transaction<'a> {
     finished: bool,
 }
 
+#[allow(dead_code)]
 impl<'a> Transaction<'a> {
     fn commit(&mut self, config: &str) -> Result<()> {
         self.session.commit_transaction(config)?;
@@ -54,7 +58,6 @@ impl<'a> Transaction<'a> {
         self.session.prepare_transaction(config)
     }
 
-
     fn rollback(&mut self, config: &str) -> Result<()> {
         self.session.rollback_transaction(config)?;
         self.finished = true;
@@ -62,6 +65,7 @@ impl<'a> Transaction<'a> {
     }
 }
 
+#[allow(dead_code)]
 impl<'a> Session<'a> {
     pub fn open_cursor(&self, uri: &str, config: &str) -> Result<Cursor> {
         let raw_cursor = self.raw_session.open_cursor(uri, config, None)?;
@@ -73,7 +77,10 @@ impl<'a> Session<'a> {
 
     pub fn transaction(&self, config: &str) -> Result<Transaction> {
         self.begin_transaction(config)?;
-        Ok(Transaction { session: &self, finished: false })
+        Ok(Transaction {
+            session: &self,
+            finished: false,
+        })
     }
 
     delegate! {
@@ -92,6 +99,7 @@ impl<'a> Session<'a> {
     }
 }
 
+#[allow(dead_code)]
 impl<'a> Cursor<'a> {
     pub fn compare(&self, other: Cursor) -> Result<CompareStatus> {
         self.raw_cursor.compare(&other.raw_cursor)
@@ -152,11 +160,13 @@ impl<'a> Drop for Cursor<'a> {
     }
 }
 
+#[allow(dead_code)]
 struct Cursor<'a> {
     session: &'a Session<'a>,
     raw_cursor: raw_api::RawCursor,
 }
 
+#[allow(dead_code)]
 struct Session<'a> {
     raw_session: raw_api::RawSession,
     conn: &'a Connection,
@@ -250,7 +260,7 @@ mod tests {
         // Insert two entries on the first session, but within a transaction
         assert_ok!(sess1.create("table:foo", "key_format=S,value_format=S"));
         let cur = assert_ok!(sess1.open_cursor("table:foo", ""));
-        let mut _txn1 =  sess1.transaction("name=foo").expect("begin txn failed");
+        let mut _txn1 = sess1.transaction("name=foo").expect("begin txn failed");
         cur.set_key("tyler");
         cur.set_value("brock");
 
@@ -264,7 +274,6 @@ mod tests {
 
         // now let's commit the txn
         _txn1.commit("").expect("commit failed");
-
 
         // after committing, the key that was inserted now becomes visible
         let cur2 = assert_ok!(sess2.open_cursor("table:foo", ""));
@@ -293,7 +302,7 @@ mod tests {
         // Insert two entries on the first session, but within a transaction
         assert_ok!(sess1.create("table:foo", "key_format=S,value_format=S"));
         let cur = assert_ok!(sess1.open_cursor("table:foo", ""));
-        let mut _txn1 =  sess1.transaction("name=foo").expect("begin txn failed");
+        let mut _txn1 = sess1.transaction("name=foo").expect("begin txn failed");
         cur.set_key("tyler");
         cur.set_value("brock");
 
