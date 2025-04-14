@@ -80,7 +80,7 @@ impl Error {
     }
 }
 
-struct Modify<'a> {
+pub struct Modify<'a> {
     data: &'a [u8],
     offset: usize,
 }
@@ -591,20 +591,6 @@ impl RawSession {
     // pub fn get_last_error(&self, int * err, int * sub_level_err, const char ** err_msg )
     // pub fn log_flush(&self, const char * config )
     // pub fn log_printf(&self, const char * format, ... )
-    pub fn open_cursor(&self, uri: &str) -> Result<RawCursor> {
-        let uri = CString::new(uri).unwrap();
-        let mut cursor: *mut wtffi::WT_CURSOR = ptr::null_mut();
-        let cursor_null: *const wtffi::WT_CURSOR = ptr::null();
-        let result = unsafe {
-            unwrap_or_panic!(
-                (*self.session).drop,
-                self.session,
-                name.as_ptr(),
-                config.as_ptr()
-            )
-        };
-        make_result!(err_code, ())
-    }
     // pub fn get_last_error(&self, int * err, int * sub_level_err, const char ** err_msg )
     // pub fn log_flush(&self, const char * config )
 
@@ -787,8 +773,8 @@ impl RawCursor {
             unsafe {
                 (
                     // subtract 1 from sizes to ignore null terminators (TODO: is this correct?)
-                    raw_data(key.data as *const i8, key.size - 1),
-                    raw_data(value.data as *const i8, value.size - 1),
+                    raw_data(key.data as *const u8, key.size - 1),
+                    raw_data(value.data as *const u8, value.size - 1),
                 )
             }
         })
@@ -840,7 +826,7 @@ impl RawCursor {
         make_result!(err_code, ())
     }
 
-    pub fn modify<'a, M: Iterator<Item = Modify<'a>>>(&self, ms: M) {
+    pub fn modify<'a, M: Iterator<Item = Modify<'a>>>(&self, _ms: M) {
         todo!();
         //let ms: Vec<_> = ms
         //    .map(|m| wtffi::WT_MODIFY {
@@ -979,8 +965,6 @@ mod tests {
         let temp_dir = tempfile::tempdir().unwrap();
         let conn = RawConnection::open(temp_dir.path().to_str().unwrap(), "create").unwrap();
         let session = conn.open_session().unwrap();
-        let x: usize = 2;
-        let out: usize = 2;
         let format = CString::new("iS").unwrap();
         let foo = unsafe {
             let mut lenp: size_t = 0;
