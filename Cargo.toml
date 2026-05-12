@@ -1,0 +1,19 @@
+[package]
+name = "wiredtiger"
+version = "12.0.0"
+edition = "2021"
+description = "Safe Rust bindings for the WiredTiger storage engine (targets WiredTiger 12.x)"
+license = "Apache-2.0"
+repository = "https://github.com/TylerBrock/wiredtiger-rust"
+homepage = "https://github.com/TylerBrock/wiredtiger-rust"
+keywords = ["wiredtiger", "storage", "database", "embedded", "mongodb"]
+categories = ["database", "api-bindings"]
+links = "wiredtiger"
+readme = "README.md"
+
+[dependencies]
+thiserror = "1"
+
+[build-dependencies]
+bindgen = "0.72"
+pkg-config = "0.3"
