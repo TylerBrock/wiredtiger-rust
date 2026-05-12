@@ -45,15 +45,15 @@ fn find_wiredtiger() -> (PathBuf, Option<PathBuf>) {
         .probe("wiredtiger")
     {
         Ok(lib) => {
-            let include_dir = lib
-                .include_paths
-                .into_iter()
-                .find(|p| p.join("wiredtiger.h").exists())
-                .expect("pkg-config found wiredtiger but wiredtiger.h is missing from include paths");
-            return (include_dir, None);
+            // pkg-config may report a prefix path that differs from where the header
+            // actually lives (e.g. an uninstalled local build). Only trust it if the
+            // header is actually there.
+            if let Some(include_dir) = lib.include_paths.into_iter().find(|p| p.join("wiredtiger.h").exists()) {
+                return (include_dir, None);
+            }
+            println!("cargo:warning=pkg-config found wiredtiger but wiredtiger.h is not in the reported include paths — falling through");
         }
         Err(e) => {
-            // Not fatal — fall through to the next heuristic.
             println!("cargo:warning=pkg-config could not find wiredtiger: {e}");
         }
     }
